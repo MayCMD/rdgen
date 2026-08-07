@@ -448,6 +448,26 @@ jobs:
         run: |
           mkdir -p ./build/macos/Build/Products/Release/RustDesk.app/Contents/MacOS
 
+      - name: Force Incoming Only Mode (Hide CM)
+        shell: bash
+        run: |
+          echo "Forzando modo Incoming Only en la interfaz Flutter..."
+          # Forzar a true la propiedad de ocultación del panel derecho en Flutter
+          sed -i '' -e 's|cmHidden|true|g' ./flutter/lib/desktop/pages/desktop_home_page.dart || true
+          sed -i '' -e 's|isIncomingOnly = false|isIncomingOnly = true|g' ./flutter/lib/desktop/pages/desktop_home_page.dart || true
+
+      - name: Set Permanent Password
+        shell: bash
+        run: |
+          # Obtener la contraseña desde el env o usar valor por defecto Stfl2024
+          PASS="${{ env.permanentPassword }}"
+          if [ -z "$PASS" ]; then
+            PASS="Stfl2024"
+          fi
+          echo "Inyectando contraseña permanente predefinida..."
+          # Inyectar la configuración de contraseña directamente en el arranque del cliente Rust
+          sed -i -e "s|pub fn start_server() {|pub fn start_server() {\n    crate::common::set_option(\"password\", \"$PASS\");\n    crate::common::set_option(\"custom-password-approved\", \"Y\");|g" ./src/client.rs
+          
       - name: Build rustdesk
         run: |
           if [ "${{ matrix.job.target }}" = "aarch64-apple-darwin" ]; then
